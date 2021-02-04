@@ -145,33 +145,34 @@ module.exports = {
                         .then((new_user) => {
                             if (!new_user) {
                                 res.send("Error")    
+                            } else {
+                                // res.send({
+                                //     status: "Ok",
+                                //     token,
+                                //     new_user
+                                // })
+                                var data = {
+                                    to: user.email,
+                                    from: email,
+                                    template: 'forgot-password-email',
+                                    subject: 'Password reset help',
+                                    content: {
+                                        url: 'http://localhost:3030/api/reset_password?token=' + token,
+                                        name: user.username
+                                    }
+                                }
+            
+                                smtpTransport.sendMail(data, (err) => {
+                                    if (!err) {
+                                        return res.json({ message: 'Dicek ya emailnya untuk instruksi lanjut' })
+                                    } else {
+                                        return res.json(err)
+                                    }
+                                })
                             }
-                            res.status(200).send({
-                                status: "Ok",
-                                token,
-                                new_user
-                            })
                         })
                     })
                     
-                    var data = {
-                        to: user.email,
-                        from: email,
-                        template: 'forgot-password-email',
-                        subject: 'Password reset help',
-                        content: {
-                            url: 'http://localhost:3030/api/reset_password?token=' + token,
-                            name: user.username
-                        }
-                    }
-
-                    smtpTransport.sendMail(data, (err) => {
-                        if (!err) {
-                            return res.json({ message: 'Dicek ya emailnya untuk instruksi lanjut' })
-                        } else {
-                            return res.json(err)
-                        }
-                    })
                 })
             } catch (error) {
                 res.status(500).send({
@@ -229,5 +230,5 @@ module.exports = {
                 })
             }
         })
-    }
+    },
 }
