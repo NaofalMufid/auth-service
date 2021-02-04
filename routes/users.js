@@ -2,6 +2,7 @@ var Router = require('express-group-router');
 var router = new Router();
 var AuthController = require("../controllers/api/auth");
 var UserController = require("../controllers/api/user");
+var middleware = require('../middlewares/middleware');
 
 
 module.exports = (app) => {
@@ -14,7 +15,7 @@ module.exports = (app) => {
   router.get('/reset_password', AuthController.reset_password_template);
   router.post('/reset_password', AuthController.reset_password);
 
-  router.group( (router) => {
+  router.group([middleware.verifyToken], (router) => {
     router.get("/users", UserController.index);
     router.get("/user/:id", UserController.show);
     router.post("/users", UserController.create);

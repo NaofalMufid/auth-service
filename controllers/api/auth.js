@@ -73,12 +73,13 @@ module.exports = {
             }
             user.checkPassword(req.body.password, (err, isMatch) => {
             if (isMatch && !err) {
-                res.json({
-                    token: jwt.sign(
+                var token = "JWT " + jwt.sign(
                         { _id: user.id, username: user.username },
                         secretToken,
                         { expiresIn: 86400 * 30}
                     )
+                res.json({
+                    token
                 });
             } else {
                 res.status(401).send({
