@@ -8,11 +8,7 @@ var middleware = require('../middlewares/middleware');
 module.exports = (app) => {
   router.post('/register', AuthController.register);
   router.post('/login', AuthController.login);
-
-  router.get('/forgot_password', AuthController.forgot_password_template);
   router.post('/forgot_password', AuthController.forgot_password);
-
-  router.get('/reset_password', AuthController.reset_password_template);
   router.post('/reset_password', AuthController.reset_password);
 
   router.group([middleware.verifyToken], (router) => {

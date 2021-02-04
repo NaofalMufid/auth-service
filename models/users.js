@@ -38,6 +38,11 @@ module.exports = (sequelize, DataTypes) => {
         min: 6
       }
     },
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
     reset_password: DataTypes.STRING,
     reset_password_expires: DataTypes.DATE,
   }, {

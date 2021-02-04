@@ -104,6 +104,7 @@ module.exports = {
             const user = {
                 username: req.body.username,
                 email: req.body.email,
+                is_active: req.body.is_active,
                 password: bcrypt.hashSync(req.body.password, 10)
             }
 
