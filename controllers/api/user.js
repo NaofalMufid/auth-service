@@ -129,6 +129,30 @@ module.exports = {
     },
     
     delete: async(req, res) => {
-        
+        try {
+            const id = req.params.id
+    
+            await User.destroy({where: {id: id}})
+            .then(user => {
+                if (user == 1) {
+                    res.send({
+                        message: "User was deleted successfully"
+                    })
+                } else {
+                    res.send({
+                        message: `Cannot delete user with id=${id}. Maybe user was not found`
+                    })
+                }
+            })
+            .catch(err => {
+                res.status(500).send({
+                    message: "Could not delete user with id="+id                
+                })
+            })
+        } catch (error) {
+            res.status(500).send({
+                message: "Could not delete user"                
+            })
+        }
     }
 }
