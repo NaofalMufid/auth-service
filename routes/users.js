@@ -17,6 +17,7 @@ module.exports = (app) => {
   router.group( (router) => {
     router.get("/users", UserController.index);
     router.get("/user/:id", UserController.show);
+    router.post("/users", UserController.create);
   })
 
   const listRoutes = router.init();

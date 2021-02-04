@@ -15,9 +15,29 @@ module.exports = (sequelize, DataTypes) => {
     }
   };
   users.init({
-    username: DataTypes.STRING,
-    email: DataTypes.STRING,
-    password: DataTypes.STRING,
+    username: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+      validate:{
+        len: [4,15]
+      }
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+      validate:{
+        isEmail: true
+      }
+    },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate:{
+        min: 6
+      }
+    },
     reset_password: DataTypes.STRING,
     reset_password_expires: DataTypes.DATE,
   }, {
