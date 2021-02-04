@@ -1,3 +1,5 @@
+const users = require("../../routes/users")
+
 const db = require("../../models"),
     User = db.users,
     bcrypt = require("bcryptjs")
@@ -5,10 +7,10 @@ const db = require("../../models"),
 module.exports = {
     index: async(req, res) => {
         try {
-            User.findAll({
+            await User.findAll({
                 attributes: { 
                     exclude: ["password", "createdAt", "updatedAt"]
-                 }
+                }
             })
             .then((users) => {
                 if (users.length > 0) {
@@ -32,7 +34,34 @@ module.exports = {
     },
 
     show: async(req, res) => {
-        
+        try {
+            const id = req.params.id
+
+            User.findOne({
+                where: {id: id},
+                attributes: { 
+                    exclude: ["password", "createdAt", "updatedAt"]
+                }
+            })
+            .then((user) => {
+                if (user != null) {
+                    res.status(200).send(user)
+                } else {
+                    res.status(400).send({
+                        message: `User data with id=${id} not found`
+                    })
+                }
+            })
+            .catch((err) => {
+                res.status(500).send({
+                    message: err.message
+                })
+            })
+        } catch (error) {
+            res.status(500).send({
+                message: error.message
+            })
+        }
     },
 
     create: async(req, res) => {
