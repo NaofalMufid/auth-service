@@ -18,6 +18,8 @@ module.exports = (app) => {
     router.get("/users", UserController.index);
     router.get("/user/:id", UserController.show);
     router.post("/users", UserController.create);
+    router.put("/user/:id", UserController.update);
+    router.delete("/user/:id", UserController.delete);
   })
 
   const listRoutes = router.init();

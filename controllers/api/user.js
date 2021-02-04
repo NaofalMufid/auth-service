@@ -99,7 +99,33 @@ module.exports = {
     },
 
     update: async(req, res) => {
-        
+        try {
+            const id = req.params.id
+            const user = {
+                username: req.body.username,
+                email: req.body.email,
+                password: bcrypt.hashSync(req.body.password, 10)
+            }
+
+            await User.update(
+                user,
+                {where: {id: id}}
+            )
+                .then(
+                    res.status(200).send({
+                        status: "Success",
+                        message: "User successfully updated"
+                    })
+                )
+                .catch((err) => {
+                    res.status(500).send({
+                        message:
+                            err.message || "Some error occured updating user!"
+                    })
+                })
+        } catch (error) {
+            next(error)
+        }       
     },
     
     delete: async(req, res) => {
