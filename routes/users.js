@@ -1,6 +1,7 @@
 var Router = require('express-group-router');
 var router = new Router();
 var AuthController = require("../controllers/api/auth");
+var UserController = require("../controllers/api/user");
 
 
 module.exports = (app) => {
@@ -12,6 +13,10 @@ module.exports = (app) => {
 
   router.get('/reset_password', AuthController.reset_password_template);
   router.post('/reset_password', AuthController.reset_password);
+
+  router.group( (router) => {
+    router.get("/users", UserController.index);
+  })
 
   const listRoutes = router.init();
   app.use("/api/", listRoutes);

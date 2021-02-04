@@ -1,8 +1,11 @@
+const { token } = require("morgan")
+
 const db = require("../../models"),
     User = db.users,
     bcrypt = require("bcryptjs"),
     jwt = require("jsonwebtoken"),
-    path = require("path")
+    path = require("path"),
+    crypto = require("crypto"),
     secretToken = process.env.JWT_SECRET
 
 const hbs = require("nodemailer-express-handlebars"),
@@ -20,7 +23,7 @@ const smtpTransport = nodemailer.createTransport({
 
 const handlebarsOptions = {
     viewEngine: 'handlebars',
-    viewPath: path.resolve("../../views"),
+    viewPath: path.resolve("./views/templates/"),
     extName: '.html'
 }
 
@@ -105,10 +108,12 @@ module.exports = {
         return res.sendFile(path.resolve("views/reset-password.html"))
     },
 
-    forgot_password: async(req, res) => {
+    forgot_password: (req, res) => {
             try {
-                const email = req.body.email
-                User.findOne({ email})
+                User.findOne({
+                    where: {email: req.body.email},
+                    attributes: { exclude : ["password", "createdAt", "updatedAt"] }
+                })
                 .then((user) => {
                     if (!user) {
                         return res.status(401).send({
@@ -116,58 +121,62 @@ module.exports = {
                             message: "Authentication failed. User not found.",
                         });    
                     }
+
                     crypto.randomBytes(20, (err, buffer) => {
                         var token = buffer.toString('hex')
-                        done(err, user, token)
                         if (!err) {
-                            res.json(user, token)
+                            res.status(200).send({
+                                user,
+                                token
+                            })
                         } else {
                             res.status(401).send({
                                 status: false,
                                 message: "Failed"
                             })
                         }
+                        console.log("tokenya ",token)
+                        User.update(
+                            {reset_password: token, reset_password_expires: Date.now() + 864000000},
+                            { where: {id: user.id} },
+                            // { upsert: true, new: true }
+                        )
+                        .then((new_user) => {
+                            if (!new_user) {
+                                res.send("Error")    
+                            }
+                            res.status(200).send({
+                                status: "Ok",
+                                token,
+                                new_user
+                            })
+                        })
+                    })
+                    
+                    var data = {
+                        to: user.email,
+                        from: email,
+                        template: 'forgot-password-email',
+                        subject: 'Password reset help',
+                        content: {
+                            url: 'http://localhost:3030/api/reset_password?token=' + token,
+                            name: user.username
+                        }
+                    }
+
+                    smtpTransport.sendMail(data, (err) => {
+                        if (!err) {
+                            return res.json({ message: 'Dicek ya emailnya untuk instruksi lanjut' })
+                        } else {
+                            return res.json(err)
+                        }
                     })
                 })
             } catch (error) {
-                
-            }
-            function (done) {
-                
-            },
-            function(user, done) {
-                crypto.randomBytes(20, function (err, buffer) {
-                    var token = buffer.toString('hex')
-                    done(err, user, token)
-                })
-            },
-            function(user, token, done) {
-                User.findByIdAndUpdate(
-                    { id: user.id }, {reset_password: token, reset_password_expires: Date.now() + 864000000},
-                    { upsert: true, new: true })
-                    .exec(function(err, new_user) {
-                        done(err, token, new_user)
-                    })
-            },
-            function(token, user, done) {
-                var data = {
-                    to: user.email,
-                    from: email,
-                    template: 'forgot-password-email',
-                    subject: 'Password reset help',
-                    content: {
-                        url: 'http://localhost:3030/api/reset_password?token=' + token,
-                        name: user.username
-                    }
-                }
-
-                smtpTransport.sendMail(data, function (err) {
-                    if (!err) {
-                        return res.json({ message: 'Dicek ya emailnya untuk instruksi lanjut' })
-                    } else {
-                        return done(err)
-                    }
-                })
+                res.status(500).send({
+                    message:
+                    error.message
+                })      
             }
     },
 
