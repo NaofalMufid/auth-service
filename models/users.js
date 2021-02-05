@@ -41,7 +41,7 @@ module.exports = (sequelize, DataTypes) => {
     is_active: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: false
+      defaultValue: true
     },
     reset_password: DataTypes.STRING,
     reset_password_expires: DataTypes.DATE,

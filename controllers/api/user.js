@@ -80,6 +80,32 @@ module.exports = {
                 password: bcrypt.hashSync(req.body.password, 10)
             }
 
+            // Username check
+            User.findOne({
+                where: {username: new_user.username}
+            }).then(user => {
+                if (user) {
+                    res.status(400).send({
+                        message: "Failed! Username is already in use!"
+                    });
+                    return;
+                }
+                next();
+            });
+
+            // Email check
+            User.findOne({
+                where: {email: new_user.email}
+            }).then(user => {
+                if (user) {
+                    res.status(400).send({
+                        message: "Failed! Email is already in use!"
+                    });
+                    return;
+                }
+                next();    
+            });
+
             await User.create(new_user)
                 .then(
                     res.status(200).send({
@@ -98,7 +124,7 @@ module.exports = {
         }
     },
 
-    update: async(req, res) => {
+    update: async(req, res, next) => {
         try {
             const id = req.params.id
             const user = {

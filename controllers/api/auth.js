@@ -2,7 +2,6 @@ const db = require("../../models"),
     User = db.users,
     bcrypt = require("bcryptjs"),
     jwt = require("jsonwebtoken"),
-    path = require("path"),
     crypto = require("crypto"),
     secretToken = process.env.JWT_SECRET
 
@@ -19,23 +18,50 @@ const smtpTransport = nodemailer.createTransport({
 })
 
 module.exports = {
-    register: (req, res) => {
-        const registerUserReqBody = {
+    register: (req, res, next) => {      
+        const registerUser = {
             username: req.body.username,
             email: req.body.email,
             password: bcrypt.hashSync(req.body.password, 10)
         };
-      
+
         if (
-            !registerUserReqBody.username ||
-            !registerUserReqBody.email ||
-            !registerUserReqBody.password
+            !registerUser.username ||
+            !registerUser.email ||
+            !registerUser.password
         ) {
             res.status(400).send({
                 message: "please fill form username,password, email",
             });
         } else {
-        User.create(registerUserReqBody)
+
+        // Username check
+        User.findOne({
+            where: {username: req.body.username}
+        }).then(user => {
+            if (user) {
+                res.status(400).send({
+                    message: "Failed! Username is already in use!"
+                });
+                return;
+            }
+            next();
+        });
+
+        // Email check
+        User.findOne({
+            where: {email: req.body.email}
+        }).then(user => {
+            if (user) {
+                res.status(400).send({
+                    message: "Failed! Email is already in use!"
+                });
+                return;
+            }
+            next();    
+        });
+
+        User.create(registerUser)
         .then(() => {
             res.status(201).send({
                 message: "user registration success",
