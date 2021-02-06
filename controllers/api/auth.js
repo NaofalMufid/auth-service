@@ -18,61 +18,65 @@ const smtpTransport = nodemailer.createTransport({
 })
 
 module.exports = {
-    register: (req, res, next) => {      
-        const registerUser = {
-            username: req.body.username,
-            email: req.body.email,
-            password: bcrypt.hashSync(req.body.password, 10)
-        };
-
-        if (
-            !registerUser.username ||
-            !registerUser.email ||
-            !registerUser.password
-        ) {
-            res.status(400).send({
-                message: "please fill form username,password, email",
-            });
-        } else {
-
-        // Username check
-        User.findOne({
-            where: {username: req.body.username}
-        }).then(user => {
-            if (user) {
+    register: async(req, res, next) => {
+        try {
+            const registerUser = {
+                username: req.body.username,
+                email: req.body.email,
+                password: bcrypt.hashSync(req.body.password, 10)
+            };
+    
+            if (
+                !registerUser.username ||
+                !registerUser.email ||
+                !registerUser.password
+            ) {
                 res.status(400).send({
-                    message: "Failed! Username is already in use!"
+                    message: "please fill form username,password, email",
                 });
-                return;
-            }
-            next();
-        });
-
-        // Email check
-        User.findOne({
-            where: {email: req.body.email}
-        }).then(user => {
-            if (user) {
-                res.status(400).send({
-                    message: "Failed! Email is already in use!"
+            } else {
+                // Username check
+                await User.findOne({
+                    where: {username: req.body.username}
+                }).then(user => {
+                    if (user) {
+                        res.status(400).send({
+                            message: "Failed! Username is already in use!"
+                        });
+                        return;
+                    }
+                    next();
                 });
-                return;
+    
+                // Email check
+                await User.findOne({
+                    where: {email: req.body.email}
+                }).then(user => {
+                    if (user) {
+                        res.status(400).send({
+                            message: "Failed! Email is already in use!"
+                        });
+                        return;
+                    }
+                    next();    
+                });
+    
+                // Save user to database
+                await User.create(registerUser)
+                .then(() => {
+                    return res.status(200).send({
+                        message: "user registration success",
+                    });
+                })
+                .catch((err) => {
+                    res.status(404).send({
+                        message: err.message || "error while registration user",
+                    });
+                });
             }
-            next();    
-        });
-
-        User.create(registerUser)
-        .then(() => {
-            res.status(201).send({
-                message: "user registration success",
-            });
-        })
-        .catch((err) => {
-            res.status(500).send({
-                message: err.message || "error while registration user",
-            });
-        });
-        }    
+        } catch (error) {
+            next(error);
+        }      
     },
 
     login: (req, res) => {
@@ -80,10 +84,10 @@ module.exports = {
             where: { email: req.body.email },
         })
         .then((user) => {
-            if (!user) {
+            if (!user || user.is_active === false) {
                 return res.status(401).send({
                     status: "failed",
-                    message: "Authentication failed. User not found.",
+                    message: "Authentication failed. User not found or User is not active.",
                 });
             }
             user.checkPassword(req.body.password, (err, isMatch) => {

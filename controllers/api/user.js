@@ -1,13 +1,20 @@
 const db = require("../../models"),
     User = db.users,
+    Role = db.roles,
     bcrypt = require("bcryptjs")
 
 module.exports = {
     index: async(req, res) => {
         try {
             await User.findAll({
+                include: [
+                    {
+                        model: Role,
+                        attributes: {exclude:[ "createdAt", "updatedAt"]}
+                    }
+                ],
                 attributes: { 
-                    exclude: ["password", "createdAt", "updatedAt"]
+                    exclude: ["roleId", "password", "reset_password", "reset_password_expires", "createdAt", "updatedAt"]
                 }
             })
             .then((users) => {
@@ -36,10 +43,16 @@ module.exports = {
             const id = req.params.id
 
             await User.findOne({
-                where: {id: id},
+                include: [
+                    {
+                        model: Role,
+                        attributes: {exclude:[ "createdAt", "updatedAt"]}
+                    }
+                ],
                 attributes: { 
-                    exclude: ["password", "createdAt", "updatedAt"]
-                }
+                    exclude: ["roleId", "password", "reset_password", "reset_password_expires", "createdAt", "updatedAt"]
+                },
+                where: {id: id}
             })
             .then((user) => {
                 if (user != null) {
@@ -67,7 +80,8 @@ module.exports = {
             if (
                 !req.body.username ||
                 !req.body.email ||
-                !req.body.password
+                !req.body.password ||
+                !req.body.role
             ) {
                 res.status(400).send({
                     message: "Username, Email or Password can't be empty!"
@@ -77,7 +91,8 @@ module.exports = {
             const new_user = {
                 username: req.body.username,
                 email: req.body.email,
-                password: bcrypt.hashSync(req.body.password, 10)
+                password: bcrypt.hashSync(req.body.password, 10),
+                role_id: req.body.role
             }
 
             // Username check
@@ -131,7 +146,8 @@ module.exports = {
                 username: req.body.username,
                 email: req.body.email,
                 is_active: req.body.is_active,
-                password: bcrypt.hashSync(req.body.password, 10)
+                password: bcrypt.hashSync(req.body.password, 10),
+                role_id: req.body.role
             }
 
             await User.update(

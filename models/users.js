@@ -59,5 +59,10 @@ module.exports = (sequelize, DataTypes) => {
       cb(null, isMatch);
     });
   };
+  users.associate = function (models) {
+    users.belongsTo(models.roles, {
+      foreignKey: "role_id"
+    });
+  }
   return users;
 };
