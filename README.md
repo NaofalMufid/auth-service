@@ -1,5 +1,5 @@
 # AUTH SERVICE
- **API Service for auth service app**
+ **Simple Auth Service (login, register, forgot password, crud user)**
 
 ### Stack
 - nodejs (express)
