@@ -22,21 +22,15 @@ const getToken = (headers) => {
   }
 };
 
-function verifyToken(req, res, next) {
+const verifyToken = (rolesArray) => (req, res, next) => {
   var token = getToken(req.headers);
 
   const decoded = decode(token);
-//   console.log(`ini adalah decode ${token}`);
-
-  const reqBodyUserId = req.body.user_id;
-  const reqParamsUserId = req.params.id;
-
-  if (
-    (token && reqBodyUserId == decoded.id) ||
-    (token && reqParamsUserId == decoded.id)
-  ) {
-    // verifyJwt(token);
-    // next();
+  var authorized = false;
+  
+  //if user has a role that is required to access any API
+  authorized = rolesArray.includes(decoded.role);
+  if (token && authorized) {
     jwt.verify(token, secret, (err, decode) => {
       if(err){
           return res.status(500).send({
@@ -45,14 +39,14 @@ function verifyToken(req, res, next) {
               errors: err
           });
       }
-    //   console.log("ini adalah decode.id", decode.user_id)
-      req.userId = decode.user_id;
+      // console.log("ini adalah decode.role =", decode.role);
       next();
     });
+
   } else {
     res.status(403).send({
       success: false,
-      message: "access denied",
+      message: "Access denied",
     });
   }
 }
