@@ -1,6 +1,13 @@
 # AUTH SERVICE
  **API Service for auth service app**
 
+### Stack
+- nodejs (express)
+- postgresql
+- sequelize
+- jsonwebtoken
+- nodemailer
+
 ### List Auth Service API  :
 
 1. Auth
