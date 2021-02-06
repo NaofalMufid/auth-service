@@ -1,5 +1,6 @@
 const db = require("../../models"),
     User = db.users,
+    Role = db.roles,
     bcrypt = require("bcryptjs"),
     jwt = require("jsonwebtoken"),
     crypto = require("crypto"),
@@ -81,6 +82,15 @@ module.exports = {
 
     login: (req, res) => {
         User.findOne({
+            include: [
+                {
+                    model: Role,
+                    attributes: {exclude:[ "createdAt", "updatedAt"]}
+                }
+            ],
+            attributes: { 
+                exclude: ["roleId", "reset_password", "reset_password_expires", "createdAt", "updatedAt"]
+            },
             where: { email: req.body.email },
         })
         .then((user) => {
@@ -93,7 +103,7 @@ module.exports = {
             user.checkPassword(req.body.password, (err, isMatch) => {
             if (isMatch && !err) {
                 var token = "JWT " + jwt.sign(
-                        { _id: user.id, username: user.username },
+                        { id: user.id, username: user.username, role: user.role['name'] },
                         secretToken,
                         { expiresIn: 86400 * 30}
                     )
