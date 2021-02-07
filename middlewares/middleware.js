@@ -39,7 +39,6 @@ const verifyToken = (rolesArray) => (req, res, next) => {
               errors: err
           });
       }
-      // console.log("ini adalah decode.role =", decode.role);
       next();
     });
 
@@ -56,20 +55,31 @@ const tokenDecoded = (req, res, next) => {
   const decoded = decode(token);
 
   if (token) {
-    res.send({
+    res.status(200).send({
       success: true,
       data: decoded,
     });
     next();
-  } else {
-    res.status(403).send({
-      success: false,
-      message: "token not valid",
-    });
   }
 };
+
+const tokenDecodedValue = (headers) => {
+  var reqToken = headers.authorization; 
+  var parted = reqToken.split(" ");
+  if (parted.length === 2) {
+      if (parted[0] === "JWT") {
+          parted = parted[1];
+      }
+  } else {
+      parted = null;
+  }
+  var decoded = decode(parted);
+  return decoded;
+}
+
 
 module.exports = {
   verifyToken,
   tokenDecoded,
+  tokenDecodedValue
 };
