@@ -1,6 +1,7 @@
 const db = require("../../models"),
     User = db.users,
     Role = db.roles,
+    middleware = require('../../middlewares/middleware'),
     bcrypt = require("bcryptjs")
 
 module.exports = {
@@ -11,11 +12,18 @@ module.exports = {
                     {
                         model: Role,
                         attributes: {exclude:[ "createdAt", "updatedAt"]}
+                    },
+                    {
+                        model: User,
+                        as: "creator",
+                        attributes: { exclude: ["id", "email", "is_active", "roleId", "createdBy", "role_id", "password", "reset_password", "reset_password_expires", "createdAt", "updatedAt"] }
                     }
                 ],
                 attributes: { 
-                    exclude: ["roleId", "password", "reset_password", "reset_password_expires", "createdAt", "updatedAt"]
-                }
+                    exclude: ["roleId", "password", "reset_password", "reset_password_expires", "createdAt", "createdBy", "updatedAt"]
+                },
+                order: [['username', 'ASC']]
+
             })
             .then((users) => {
                 if (users.length > 0) {
@@ -76,12 +84,12 @@ module.exports = {
     },
 
     create: async(req, res, next) => {
+        var creator = middleware.tokenDecodedValue(req.headers);
         try {
             if (
                 !req.body.username ||
                 !req.body.email ||
-                !req.body.password ||
-                !req.body.role
+                !req.body.password
             ) {
                 res.status(400).send({
                     message: "Username, Email or Password can't be empty!"
@@ -92,7 +100,8 @@ module.exports = {
                 username: req.body.username,
                 email: req.body.email,
                 password: bcrypt.hashSync(req.body.password, 10),
-                role_id: req.body.role
+                role_id: req.body.role,
+                createdBy: creator.id
             }
 
             // Username check

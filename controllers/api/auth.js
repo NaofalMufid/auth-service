@@ -21,21 +21,21 @@ const smtpTransport = nodemailer.createTransport({
 module.exports = {
     register: async(req, res, next) => {
         try {
-            const registerUser = {
-                username: req.body.username,
-                email: req.body.email,
-                password: bcrypt.hashSync(req.body.password, 10)
-            };
-    
+            
             if (
-                !registerUser.username ||
-                !registerUser.email ||
-                !registerUser.password
+                !req.body.username ||
+                !req.body.email ||
+                !req.body.password
             ) {
                 res.status(400).send({
                     message: "please fill form username,password, email",
                 });
             } else {
+                const registerUser = {
+                    username: req.body.username,
+                    email: req.body.email,
+                    password: bcrypt.hashSync(req.body.password, 10)
+                };
                 // Username check
                 await User.findOne({
                     where: {username: req.body.username}
@@ -64,16 +64,18 @@ module.exports = {
     
                 // Save user to database
                 await User.create(registerUser)
-                .then(() => {
-                    return res.status(200).send({
-                        message: "user registration success",
-                    });
-                })
+                .then(
+                    res.status(200).send({
+                        status: "success",
+                        message: "Registration successfully!"
+                    })
+                )
                 .catch((err) => {
-                    res.status(404).send({
-                        message: err.message || "error while registration user",
-                    });
-                });
+                    res.status(500).send({
+                        message:
+                            err.message || "Some error occured on registration new user!"
+                    })
+                })
             }
         } catch (error) {
             next(error);

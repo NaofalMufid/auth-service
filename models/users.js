@@ -45,6 +45,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     reset_password: DataTypes.STRING,
     reset_password_expires: DataTypes.DATE,
+    createdBy: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
+    }
   }, {
     sequelize,
     modelName: 'users',
@@ -63,6 +68,10 @@ module.exports = (sequelize, DataTypes) => {
     users.belongsTo(models.roles, {
       foreignKey: "role_id"
     });
+    users.belongsTo(users,{
+      foreignKey: "createdBy",
+      as: "creator"
+    })
   }
   return users;
 };
