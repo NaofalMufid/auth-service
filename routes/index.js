@@ -1,8 +1,7 @@
 var express = require('express');
 var router = express.Router();
+var AuthController = require("../controllers/api/auth");
 /* GET home page. */
-router.get('/', function(req, res) {
-  res.send("Henshin")
-});
+router.get('/', AuthController.home);
 
 module.exports = router;

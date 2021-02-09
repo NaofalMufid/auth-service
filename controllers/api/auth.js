@@ -1,9 +1,13 @@
 const db = require("../../models"),
     User = db.users,
     Role = db.roles,
+    userLog = db.user_log,
     bcrypt = require("bcryptjs"),
     jwt = require("jsonwebtoken"),
     crypto = require("crypto"),
+    middleware = require('../../middlewares/middleware'),
+    uaParser = require('ua-parser-js'),
+    UserLog = require("../../helper/user-log"),
     secretToken = process.env.JWT_SECRET
 
 const emailSender = process.env.MAILER_EMAIL_ID,
@@ -19,9 +23,19 @@ const smtpTransport = nodemailer.createTransport({
 })
 
 module.exports = {
+    home: (req, res)  => {
+        const user_agent = req.headers['user-agent']
+        const header = req
+        res.status(200).send({
+            message: "Hello Bro"
+        })     
+        var bisa = UserLog.createLog(user_agent,header, "coba coba doang kok")
+        
+    },
     register: async(req, res, next) => {
+        const user_agent = req.headers['user-agent']
+        const header = req
         try {
-            
             if (
                 !req.body.username ||
                 !req.body.email ||
@@ -76,8 +90,10 @@ module.exports = {
                             err.message || "Some error occured on registration new user!"
                     })
                 })
+                UserLog.createLog(user_agent,header, "daftar jadi user")
             }
         } catch (error) {
+            UserLog.createLog(user_agent,header, "gagal daftar jadi user")
             next(error);
         }      
     },

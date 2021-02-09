@@ -50,20 +50,7 @@ const verifyToken = (rolesArray) => (req, res, next) => {
   }
 }
 
-const tokenDecoded = (req, res, next) => {
-  var token = getToken(req.headers);
-  const decoded = decode(token);
-
-  if (token) {
-    res.status(200).send({
-      success: true,
-      data: decoded,
-    });
-    next();
-  }
-};
-
-const tokenDecodedValue = (headers) => {
+const tokenDecoded = (headers) => {
   var reqToken = headers.authorization; 
   var parted = reqToken.split(" ");
   if (parted.length === 2) {
@@ -77,9 +64,7 @@ const tokenDecodedValue = (headers) => {
   return decoded;
 }
 
-
 module.exports = {
   verifyToken,
-  tokenDecoded,
-  tokenDecodedValue
+  tokenDecoded
 };

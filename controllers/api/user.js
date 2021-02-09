@@ -2,6 +2,8 @@ const db = require("../../models"),
     User = db.users,
     Role = db.roles,
     middleware = require('../../middlewares/middleware'),
+    userLog = require("../../helper/user-log"),
+    uaParser = require('ua-parser-js'),
     bcrypt = require("bcryptjs")
 
 module.exports = {
@@ -84,7 +86,7 @@ module.exports = {
     },
 
     create: async(req, res, next) => {
-        var creator = middleware.tokenDecodedValue(req.headers);
+        var creator = middleware.tokenDecoded(req.headers);
         try {
             if (
                 !req.body.username ||

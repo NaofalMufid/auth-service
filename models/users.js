@@ -71,7 +71,7 @@ module.exports = (sequelize, DataTypes) => {
     users.belongsTo(users,{
       foreignKey: "createdBy",
       as: "creator"
-    })
-  }
+    });
+  };
   return users;
 };
