@@ -29,18 +29,20 @@ const verifyToken = (rolesArray) => (req, res, next) => {
   var authorized = false;
   
   //if user has a role that is required to access any API
-  authorized = rolesArray.includes(decoded.role);
-  if (token && authorized) {
-    jwt.verify(token, secret, (err, decode) => {
-      if(err){
-          return res.status(500).send({
-              auth: false,
-              message: "Error",
-              errors: err
-          });
-      }
-      next();
-    });
+  if (token) {
+    authorized = rolesArray.includes(decoded.role);
+    if (authorized) {
+      jwt.verify(token, secret, (err, decode) => {
+        if(err){
+            return res.status(500).send({
+                auth: false,
+                message: "Error",
+                errors: err
+            });
+        }
+        next();
+      });
+    }
 
   } else {
     res.status(403).send({

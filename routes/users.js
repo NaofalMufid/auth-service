@@ -3,6 +3,7 @@ var router = new Router();
 var AuthController = require("../controllers/api/auth");
 var UserController = require("../controllers/api/user");
 var RoleController = require("../controllers/api/role");
+var UserLogController = require("../helper/user-log");
 var middleware = require('../middlewares/middleware');
 
 
@@ -27,6 +28,9 @@ module.exports = (app) => {
     router.post("/roles", RoleController.create);
     router.put("/role/:id", RoleController.update);
     router.delete("/role/:id", RoleController.delete);
+
+    // user log
+    router.get("/logs", UserLogController.userLogList);
   })
 
   const listRoutes = router.init();
