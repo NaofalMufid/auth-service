@@ -2,16 +2,20 @@ const db = require("../../models"),
     User = db.users,
     Role = db.roles,
     middleware = require('../../middlewares/middleware'),
+    UserLog = require("../../helper/user-log"),
     bcrypt = require("bcryptjs")
 
 module.exports = {
     index: async(req, res) => {
+        const user_agent = req.headers['user-agent']
+        const header = req
         try {
             await User.findAll({
                 include: [
                     {
                         model: Role,
-                        attributes: {exclude:[ "createdAt", "updatedAt"]}
+                        // where: {name: "nonadmin"},
+                        attributes: {exclude:["id", "createdAt", "updatedAt"]}
                     },
                     {
                         model: User,
@@ -20,13 +24,14 @@ module.exports = {
                     }
                 ],
                 attributes: { 
-                    exclude: ["roleId", "password", "reset_password", "reset_password_expires", "createdAt", "createdBy", "updatedAt"]
+                    exclude: ["role_id", "roleId", "password", "reset_password", "reset_password_expires", "createdAt", "createdBy", "updatedAt"]
                 },
                 order: [['username', 'ASC']]
 
             })
             .then((users) => {
                 if (users.length > 0) {
+                    UserLog.createLog(user_agent, header, "Show All User activity")
                     res.status(200).send(users)
                 } else {
                     res.status(400).send({
@@ -35,11 +40,13 @@ module.exports = {
                 }
             })
             .catch((err) => {
-                res.status(500).send({
+                UserLog.createLog(user_agent, header, "Trying Show All User activity failed!")
+                res.status(400).send({
                     message: err.message
                 })
             })
         } catch (error) {
+            UserLog.createLog(user_agent, header, "Failed Try Show All User activity!")
             res.status(500).send({
                 message: error.message
             })
@@ -47,9 +54,10 @@ module.exports = {
     },
 
     show: async(req, res) => {
+        const user_agent = req.headers['user-agent']
+        const header = req
         try {
             const id = req.params.id
-
             await User.findOne({
                 include: [
                     {
@@ -64,6 +72,7 @@ module.exports = {
             })
             .then((user) => {
                 if (user != null) {
+                    UserLog.createLog(user_agent, header, "Showing user by id")
                     res.status(200).send(user)
                 } else {
                     res.status(400).send({
@@ -72,11 +81,13 @@ module.exports = {
                 }
             })
             .catch((err) => {
+                UserLog.createLog(user_agent, header, "Failed show user by id")
                 res.status(500).send({
                     message: err.message
                 })
             })
         } catch (error) {
+            UserLog.createLog(user_agent, header, "Failed show user by id")
             res.status(500).send({
                 message: error.message
             })
@@ -84,7 +95,9 @@ module.exports = {
     },
 
     create: async(req, res, next) => {
-        var creator = middleware.tokenDecodedValue(req.headers);
+        const creator = middleware.tokenDecoded(req.headers);
+        const user_agent = req.headers['user-agent'];
+        const header = req;
         try {
             if (
                 !req.body.username ||
@@ -131,24 +144,29 @@ module.exports = {
             });
 
             await User.create(new_user)
-                .then(
+                .then(() => {
+                    UserLog.createLog(user_agent, header, "Success creating new user")
                     res.status(200).send({
                         status: "Success",
                         message: "New user successfully created"
                     })
-                )
+                })
                 .catch((err) => {
+                    UserLog.createLog(user_agent, header, "Failed creating new user")
                     res.status(500).send({
                         message:
                             err.message || "Some error occured creating new user!"
                     })
                 })
         } catch (error) {
+            UserLog.createLog(user_agent, header, "Failed creating new user")
             next(error)
         }
     },
 
     update: async(req, res, next) => {
+        const user_agent = req.headers['user-agent'];
+        const header = req;
         try {
             const id = req.params.id
             const user = {
@@ -163,19 +181,22 @@ module.exports = {
                 user,
                 {where: {id: id}}
             )
-                .then(
+                .then(() => {
+                    UserLog.createLog(user_agent, header, "Success updating user")
                     res.status(200).send({
                         status: "Success",
                         message: "User successfully updated"
                     })
-                )
+                })
                 .catch((err) => {
+                    UserLog.createLog(user_agent, header, "Failed updating user")
                     res.status(500).send({
                         message:
                             err.message || "Some error occured updating user!"
                     })
                 })
         } catch (error) {
+            UserLog.createLog(user_agent, header, "Failed updating user")
             next(error)
         }       
     },
@@ -183,10 +204,12 @@ module.exports = {
     delete: async(req, res) => {
         try {
             const id = req.params.id
-    
+            const user_agent = req.headers['user-agent'];
+            const header = req;
             await User.destroy({where: {id: id}})
             .then(user => {
                 if (user == 1) {
+                    UserLog.createLog(user_agent, header, "Success delete user")
                     res.send({
                         message: "User was deleted successfully"
                     })
@@ -197,11 +220,13 @@ module.exports = {
                 }
             })
             .catch(err => {
+                UserLog.createLog(user_agent, header, "Failed delete user")
                 res.status(403).send({
-                    message: "Could not delete user with id="+id                
+                    message: "Could not delete user with id= "+id                 
                 })
             })
         } catch (error) {
+            UserLog.createLog(user_agent, header, "Failed deleting user")
             res.status(500).send({
                 message: "Could not delete user"                
             })
