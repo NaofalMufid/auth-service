@@ -13,7 +13,10 @@ module.exports = (app) => {
   router.post('/login', AuthController.login);
   router.post('/forgot_password', AuthController.forgot_password);
   router.post('/reset_password', AuthController.reset_password);
-
+  // verification account
+  router.post("/confirmation", AuthController.confirmationAccount);
+  router.post("/resend-confirmation", AuthController.resendConfirmation);
+  
   router.group([middleware.verifyToken(['admin','nonadmin'])], (router) => {
     router.get("/users", UserController.index);
   })
