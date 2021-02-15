@@ -152,7 +152,7 @@ module.exports = {
                     "refreshToken": refreshToken,
                 }           
                 refreshTokens[refreshToken] = response
-                res.json({
+                res.send({
                     response
                 });
                 UserLog.createLog(user_agent, header, "Success login", user.id)
@@ -205,7 +205,7 @@ module.exports = {
                     "token": token,
                 }
                 refreshTokens[postData.refreshToken].token = token
-                res.status(200).json(response)
+                res.status(200).send({response})
             })
         } else {
             
