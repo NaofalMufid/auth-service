@@ -38,13 +38,31 @@ module.exports = (sequelize, DataTypes) => {
         min: 6
       }
     },
+    role_id:{
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue:2,
+      references:{
+        model: "roles",
+        key: "id",
+      }
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true
     },
+    isVerified:{
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue:false
+    },
+    verificationToken:{
+      type: DataTypes.STRING,
+      allowNull: true
+    },
     reset_password: DataTypes.STRING,
-    reset_password_expires: DataTypes.DATE,
+    reset_password_expires: DataTypes.DATE,    
     createdBy: {
       type: DataTypes.INTEGER,
       allowNull: false,

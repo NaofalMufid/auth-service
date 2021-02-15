@@ -1,5 +1,3 @@
-const users = require("../../models/users")
-
 const db = require("../../models"),
     User = db.users,
     Role = db.roles,
@@ -7,8 +5,7 @@ const db = require("../../models"),
     jwt = require("jsonwebtoken"),
     crypto = require("crypto"),
     UserLog = require("../../helper/user-log"),
-    {Op} = require("sequelize"),
-    secretToken = process.env.JWT_SECRET
+    {Op} = require("sequelize")
 
 const emailSender = process.env.MAILER_EMAIL_ID,
     pass = process.env.MAILER_PASSWORD,
@@ -21,6 +18,8 @@ const smtpTransport = nodemailer.createTransport({
         pass: pass
     }
 })
+
+var refreshTokens = {}
 
 module.exports = {
     home: (req, res)  => {
@@ -68,11 +67,29 @@ module.exports = {
                     } else {
                         // Save user to database
                         User.create(registerUser)
-                        .then(() => {
-                            UserLog.createLog(user_agent,header, "New user has been register")
-                            res.status(200).send({
-                                status: "success",
-                                message: "Registration successfully!"
+                        .then((user) => {
+                            verificationToken= crypto.randomBytes(16).toString('hex')
+                            user.verificationToken = verificationToken
+                            user.save()
+                            var verificationUrl = `http://localhost:3030/api/confirmation?tokenActivation=${verificationToken}`
+                            var data = {
+                                to: user.email,
+                                from: emailSender,
+                                subject: 'Account Verification',
+                                html: `<p>This link for verification your account</p> <p>${verificationUrl}</p>`
+                            }
+                            smtpTransport.sendMail(data, (err) => {
+                                if (!err) {
+                                    UserLog.createLog(user_agent,header, "New user has been register")
+                                    return res.status(200).send({
+                                        message: "Registration successfully and check your email for verified account!"
+                                    })
+                                } else {
+                                    UserLog.createLog(user_agent,header, "Failed on user registration")
+                                    return res.status(500).send({
+                                        message: 'error sending email activation account'+err
+                                    })
+                                }
                             })
                         })
                         .catch((err) => {
@@ -120,19 +137,30 @@ module.exports = {
             user.checkPassword(req.body.password, (err, isMatch) => {
             if (isMatch && !err) {
                 var token = "JWT " + jwt.sign(
-                        { id: user.id, username: user.username, role: user.role['name'] },
-                        secretToken,
-                        { expiresIn: 86400 * 30}
-                    )
-                res.json({
-                    token
+                    { id: user.id, username: user.username, role: user.role['name'] },
+                    process.env.JWT_SECRET,
+                    { expiresIn: process.env.JWT_LIFE}
+                )
+                var refreshToken = jwt.sign(
+                    { id: user.id, username: user.username, role: user.role['name'] },
+                    process.env.REFRESH_SECRET,
+                    { expiresIn: process.env.REFRESH_LIFE}
+                )             
+                const response = {
+                    "status": "Logged in",
+                    "token": token,
+                    "refreshToken": refreshToken,
+                }           
+                refreshTokens[refreshToken] = response
+                res.send({
+                    response
                 });
                 UserLog.createLog(user_agent, header, "Success login", user.id)
             } else {
                 UserLog.createLog(user_agent,header, "Trying login with wrong password")
                 res.status(401).send({
                     status: false,
-                    message: "Authentication failed. Wrong Password.",
+                    message: "Authentication failed",
                 });
             }
             });
@@ -143,6 +171,45 @@ module.exports = {
             message: error.message,
             })
         );
+    },
+
+    newToken: (req, res) =>{
+        const postData = req.body
+        if (postData.refreshToken && (postData.refreshToken in refreshTokens)) {
+            User.findOne({
+                include: [
+                    {
+                        model: Role,
+                        attributes: {exclude:[ "createdAt", "updatedAt"]}
+                    }
+                ],
+                attributes: { 
+                    exclude: ["roleId", "reset_password", "reset_password_expires", "createdAt", "updatedAt"]
+                },
+                where: { email: postData.email },
+            })
+            .then((user) => {
+                if (!user || user.is_active === false) {
+                    // UserLog.createLog(user_agent,header, "Trying login with user not registered")
+                    return res.status(401).send({
+                        status: "failed",
+                        message: "Authentication failed. User not found or User is not active.",
+                    });
+                }
+                const token = "JWT " + jwt.sign(
+                    { id: user.id, username: user.username, role: user.role['name'] },
+                    process.env.JWT_SECRET,
+                    { expiresIn: process.env.JWT_LIFE}
+                )
+                const response = {
+                    "token": token,
+                }
+                refreshTokens[postData.refreshToken].token = token
+                res.status(200).send({response})
+            })
+        } else {
+            
+        }
     },
     
     forgot_password: async (req, res) => {
@@ -171,7 +238,7 @@ module.exports = {
                                 to: email,
                                 from: emailSender,
                                 subject: 'Password reset help',
-                                html: `<p>Ini link reset password mu</p> <p>${passwordResetUrl}</p>`
+                                html: `<p>Hello, ${user.name}</p><p>Ini link reset password mu</p> <p>${passwordResetUrl}</p>`
                             }
                             smtpTransport.sendMail(data, (err) => {
                                 if (!err) {
@@ -251,4 +318,73 @@ module.exports = {
                 })      
             }
     },
+
+    confirmationAccount: (req, res) => {
+        const user_agent = req.headers['user-agent']
+        const header = req
+        var token= req.body.tokenActivation
+        // console.log(token)
+        try {
+            User.findOne({where:{verificationToken: token}})
+                .then(user => {
+                    if (user) {
+                        var user_id = user.id
+                        user.isVerified = true
+                        user.verificationToken = null
+                        user.save()
+                        UserLog.createLog(user_agent,header, "Success Activation account", user_id)
+                        return res.status(200).send({
+                            message: "Activation account success"
+                        })
+                    } else {
+                        UserLog.createLog(user_agent,header, "Failed activation account!", user_id)
+                        return res.status(422).send({
+                            message: "Error was occured activated account"
+                        })
+                    }
+                })
+        } catch (error) {
+            return res.status(500).send({
+                message: error.message
+            })
+        }
+    },
+
+    resendConfirmation: (req, res) => {
+        const user_agent = req.headers['user-agent']
+        const header = req
+        var email = req.body.email
+        try {
+            User.findOne({where:{email: email}})
+                .then(user => {
+                    var verificationToken= crypto.randomBytes(16).toString('hex')
+                    user.verificationToken = verificationToken
+                    user.save()
+                    var verificationUrl = `http://localhost:3030/api/confirmation?tokenActivation=${verificationToken}`
+                    var data = {
+                        to: user.email,
+                        from: emailSender,
+                        subject: 'Account Verification',
+                        html: `<p>This link for verification your account</p> <p>${verificationUrl}</p>`
+                    }
+                    smtpTransport.sendMail(data, (err) => {
+                        if (!err) {
+                            UserLog.createLog(user_agent,header, "Resend activation account!", user.id)
+                            return res.status(200).send({
+                                message: "Resend activation account!"
+                            })
+                        } else {
+                            UserLog.createLog(user_agent,header, "Failed resend activation account!", user.id)
+                            return res.status(500).send({
+                                message: 'error sending email activation'+err
+                            })
+                        }
+                    })
+                })
+        } catch (error) {
+            return res.status(500).send({
+                message: error.message
+            })
+        }
+    }
 }
