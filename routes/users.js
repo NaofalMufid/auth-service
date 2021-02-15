@@ -11,6 +11,7 @@ module.exports = (app) => {
   // auth route
   router.post('/register', AuthController.register);
   router.post('/login', AuthController.login);
+  router.post('/newtoken', AuthController.newToken);
   router.post('/forgot_password', AuthController.forgot_password);
   router.post('/reset_password', AuthController.reset_password);
   // verification account

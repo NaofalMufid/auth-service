@@ -1,5 +1,3 @@
-const users = require("../../models/users")
-
 const db = require("../../models"),
     User = db.users,
     Role = db.roles,
@@ -7,8 +5,7 @@ const db = require("../../models"),
     jwt = require("jsonwebtoken"),
     crypto = require("crypto"),
     UserLog = require("../../helper/user-log"),
-    {Op} = require("sequelize"),
-    secretToken = process.env.JWT_SECRET
+    {Op} = require("sequelize")
 
 const emailSender = process.env.MAILER_EMAIL_ID,
     pass = process.env.MAILER_PASSWORD,
@@ -21,6 +18,8 @@ const smtpTransport = nodemailer.createTransport({
         pass: pass
     }
 })
+
+var refreshTokens = {}
 
 module.exports = {
     home: (req, res)  => {
@@ -138,12 +137,23 @@ module.exports = {
             user.checkPassword(req.body.password, (err, isMatch) => {
             if (isMatch && !err) {
                 var token = "JWT " + jwt.sign(
-                        { id: user.id, username: user.username, role: user.role['name'] },
-                        secretToken,
-                        { expiresIn: 86400 * 30}
-                    )
+                    { id: user.id, username: user.username, role: user.role['name'] },
+                    process.env.JWT_SECRET,
+                    { expiresIn: process.env.JWT_LIFE}
+                )
+                var refreshToken = jwt.sign(
+                    { id: user.id, username: user.username, role: user.role['name'] },
+                    process.env.REFRESH_SECRET,
+                    { expiresIn: process.env.REFRESH_LIFE}
+                )             
+                const response = {
+                    "status": "Logged in",
+                    "token": token,
+                    "refreshToken": refreshToken,
+                }           
+                refreshTokens[refreshToken] = response
                 res.json({
-                    token
+                    response
                 });
                 UserLog.createLog(user_agent, header, "Success login", user.id)
             } else {
@@ -161,6 +171,45 @@ module.exports = {
             message: error.message,
             })
         );
+    },
+
+    newToken: (req, res) =>{
+        const postData = req.body
+        if (postData.refreshToken && (postData.refreshToken in refreshTokens)) {
+            User.findOne({
+                include: [
+                    {
+                        model: Role,
+                        attributes: {exclude:[ "createdAt", "updatedAt"]}
+                    }
+                ],
+                attributes: { 
+                    exclude: ["roleId", "reset_password", "reset_password_expires", "createdAt", "updatedAt"]
+                },
+                where: { email: postData.email },
+            })
+            .then((user) => {
+                if (!user || user.is_active === false) {
+                    // UserLog.createLog(user_agent,header, "Trying login with user not registered")
+                    return res.status(401).send({
+                        status: "failed",
+                        message: "Authentication failed. User not found or User is not active.",
+                    });
+                }
+                const token = "JWT " + jwt.sign(
+                    { id: user.id, username: user.username, role: user.role['name'] },
+                    process.env.JWT_SECRET,
+                    { expiresIn: process.env.JWT_LIFE}
+                )
+                const response = {
+                    "token": token,
+                }
+                refreshTokens[postData.refreshToken].token = token
+                res.status(200).json(response)
+            })
+        } else {
+            
+        }
     },
     
     forgot_password: async (req, res) => {
