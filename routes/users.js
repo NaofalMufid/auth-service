@@ -18,6 +18,8 @@ module.exports = (app) => {
   router.post("/confirmation", AuthController.confirmationAccount);
   router.post("/resend-confirmation", AuthController.resendConfirmation);
   
+  router.get("/listlog", UserLogController.userLogList);
+
   router.group([middleware.verifyToken(['admin','nonadmin'])], (router) => {
     router.get("/users", UserController.index);
   })

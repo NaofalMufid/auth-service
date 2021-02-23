@@ -1,7 +1,23 @@
 const db = require("../models"),
     UserLog = db.user_log,
     middleware = require('../middlewares/middleware'),
-    uaParser = require('ua-parser-js')
+    uaParser = require('ua-parser-js'),
+    {Op, Sequelize} = require("sequelize")
+
+const getPagination = (page, size) => {
+  const limit = size ? +size : 3;
+  const offset = page ? page * limit : 0;
+
+  return {limit, offset};
+}
+
+const getPaginateData = (data, page, limit) => {
+  const {count: totalItems, rows: allData } = data;
+  const currentPage = page ? +page : 0;
+  const totalPages = Math.ceil(totalItems / limit);
+
+  return { totalItems, allData, totalPages, currentPage };
+}
 
 module.exports = {
   createLog: (user_agent, header, activity, userId) =>{
@@ -44,14 +60,24 @@ module.exports = {
   },
   
   userLogList: (req, res) => {
+    const {page, size, activity, order, filter} = req.query
+    var condition = activity ? { activity: {[Op.iLike]: `%${activity}%`} } : null
+    const {limit, offset} = getPagination(page,size)
+
     try {
-      UserLog.findAll({
+      UserLog.findAndCountAll({
+        where: Sequelize.and(
+          {condition, limit, offset},
+          {browser: `${filter}`},
+        ),
         attributes: {
           exclude: ["createdAt", "updatedAt"]
-        }
+        },
+        order: [['activity', `${order}`]]
       })
         .then((userLog) => {
-          res.status(200).send(userLog)
+          const response = getPaginateData(userLog, page, limit);
+          res.status(200).send(response)
         })
         .catch((err) => {
           res.status(400).send(err.message)
